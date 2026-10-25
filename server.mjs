@@ -7,8 +7,11 @@ import { fileURLToPath } from 'node:url'
 
 const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), 'dist')
 const PORT = Number(process.env.PORT) || 3000
-const API_HOST = 'cdn.flive.dpdns.org'
-const PROXY_PREFIX = '/api/'
+
+const PROXY_ROUTES = {
+  '/api/channels': { host: 'cdn.flive.dpdns.org', path: '/channels.json' },
+  '/api/count': { host: 'stats.flive.dpdns.org', path: '/count' },
+}
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -21,13 +24,11 @@ const MIME = {
   '.woff2': 'font/woff2',
 }
 
-function proxyApi(req, res) {
-  const targetPath = '/' + req.url.slice(PROXY_PREFIX.length)
-
+function proxyApi(target, req, res) {
   const upstream = https.request(
     {
-      host: API_HOST,
-      path: targetPath,
+      host: target.host,
+      path: target.path,
       method: 'GET',
       headers: { 'user-agent': req.headers['user-agent'] || 'flive-app' },
     },
@@ -79,7 +80,8 @@ async function serveStatic(req, res) {
 }
 
 createServer((req, res) => {
-  if (req.url.startsWith(PROXY_PREFIX)) return proxyApi(req, res)
+  const target = PROXY_ROUTES[req.url.split('?')[0]]
+  if (target) return proxyApi(target, req, res)
   return serveStatic(req, res)
 }).listen(PORT, () => {
   console.log(`FLIVE rodando em http://localhost:${PORT}`)

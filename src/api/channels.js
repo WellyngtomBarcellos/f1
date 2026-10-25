@@ -1,4 +1,5 @@
-const PROXY_URL = '/api/channels.json'
+const PROXY_URL = '/api/channels'
+const COUNTS_PROXY_URL = '/api/count'
 const DIRECT_URL = 'https://cdn.flive.dpdns.org/channels.json'
 const COUNTS_URL = 'https://stats.flive.dpdns.org/count'
 
@@ -20,7 +21,9 @@ async function getJSON(url, signal) {
 
 export async function fetchCounts(signal) {
   try {
-    const data = await getJSON(COUNTS_URL, signal)
+    const data = await getJSON(COUNTS_PROXY_URL, signal).catch(() =>
+      getJSON(COUNTS_URL, signal),
+    )
     if (!data || typeof data !== 'object' || Array.isArray(data)) return {}
     const counts = {}
     for (const [id, value] of Object.entries(data)) {
